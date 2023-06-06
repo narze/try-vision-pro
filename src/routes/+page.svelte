@@ -7,9 +7,15 @@
 	import { onMount } from 'svelte';
 	import { Facebook, Twitter } from 'svelte-share-buttons-component';
 	import * as base64 from 'base64util';
+	import * as faceapi from '@vladmandic/face-api';
 
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
+	import type { FaceLandmark68TinyNet } from '@vladmandic/face-api';
+
+	let video: HTMLVideoElement;
+	let canvas: HTMLCanvasElement;
+	let faceLandmarkOptions: FaceLandmark68TinyNet;
 
 	let data = $page.url.searchParams.get('d') || '';
 	let decodedData = data.split(',').map((d) => {
@@ -29,19 +35,78 @@
 	$: encodedData = `${base64.urlEncode(text)},${base64.urlEncode(color)}`;
 	$: shareUrl = `https://sunny-pass.vercel.app?d=${encodedData}`;
 
-	onMount(() => {
-		if (browser) {
-			const picker = new Picker({
-				parent: pickerRef,
-				color: color,
-				alpha: false
-			});
+	onMount(async () => {
+		await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
+		await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
 
-			picker.onChange = (pickedColor) => {
-				color = pickedColor.hex.substring(0, 7);
-			};
+		// faceLandmarkOptions = new faceapi.FaceLandmark68TinyNet();
+
+		let stream;
+		const constraints = {
+			audio: false,
+			video: {
+				facingMode: 'user'
+				// width: { ideal: 4096 },
+				// height: { ideal: 2160 },
+			}
+		};
+
+		try {
+			stream = await navigator.mediaDevices.getUserMedia(constraints);
+		} catch (err) {
+			console.error({ err });
+
+			// if (err.name === 'PermissionDeniedError' || err.name === 'NotAllowedError') log(`Camera Error: camera permission denied: ${err.message || err}`);
+			// if (err.name === 'SourceUnavailableError') log(`Camera Error: camera not available: ${err.message || err}`);
+			return null;
 		}
+
+		if (stream) {
+			video.srcObject = stream;
+		} else {
+			console.error('no stream');
+		}
+
+		// return new Promise((resolve) => {
+		video.onloadeddata = async () => {
+			canvas.width = video.videoWidth;
+			canvas.height = video.videoHeight;
+			video.play();
+
+			await detectVideo(video, canvas);
+			// detectVideo(video, canvas);
+			// resolve(true);
+		};
 	});
+
+	async function detectVideo(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
+		const t0 = performance.now();
+
+		const result = await faceapi.detectSingleFace(video).withFaceLandmarks(true);
+
+		console.log({ result });
+
+		if (result) {
+		}
+
+		requestAnimationFrame(() => detectVideo(video, canvas));
+		// .withFaceExpressions()
+		// .withFaceDescriptors()
+		// .withAgeAndGender()
+		// .then((result: any) => {
+		// 	const fps = 1000 / (performance.now() - t0);
+		// 	// drawFaces(canvas, result, fps.toLocaleString());
+		// 	console.log({ result });
+
+		// 	requestAnimationFrame(() => detectVideo(video, canvas));
+		// 	return true;
+		// })
+		// .catch((err) => {
+		// 	console.error({ err });
+
+		// 	return false;
+		// });
+	}
 
 	function copyImage() {
 		htmlToImage
@@ -92,12 +157,17 @@
 </svelte:head>
 
 <div class="container hero">
-	<h1 class="text-6xl">
-		<span class="highlight">Sunny</span> Pass
-		<div class="text-3xl mt-2">
-			แคล้วคลาด<span class="highlight">พ้นภัย</span>
-		</div>
-	</h1>
+	<h1 class="text-6xl">Try Vision Pro</h1>
+
+	<!-- svelte-ignore a11y-media-has-caption -->
+	<video bind:this={video} id="video" playsinline class="video" />
+	<canvas
+		bind:this={canvas}
+		id="canvas"
+		class="canvas"
+		style="position: fixed; top: 0; left: 0; z-index: 10"
+	/>
+	<div id="log" style="overflow-y: scroll; height: 16.5rem" />
 
 	<div class="flex gap-4">
 		<button bind:this={pickerRef} class="bg-blue-500 hover: text-white font-bold py-2 px-4 rounded">
@@ -132,7 +202,7 @@
 		<Twitter class="h-10 w-10 rounded" url={shareUrl} text="สร้างสติ๊กเกอร์ของคุณได้ที่นี่" />
 	</div>
 
-	<Canvas bind:color bind:text bind:imageDom />
+	<!-- <Canvas bind:color bind:text bind:imageDom /> -->
 </div>
 
 <style lang="postcss">

@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+dependencies:
+  '@vladmandic/face-api':
+    specifier: ^1.7.11
+    version: 1.7.11
+
 devDependencies:
   '@playwright/test':
     specifier: ^1.28.1
@@ -813,6 +818,11 @@ packages:
       '@typescript-eslint/types': 5.59.8
       eslint-visitor-keys: 3.4.1
     dev: true
+
+  /@vladmandic/face-api@1.7.11:
+    resolution: {integrity: sha512-jEQRN5/HDrdIEcg6pembiRvU7hk0hhkZfGfN2gxBDG95BmFZEWT/85qUrZDBJMtH51nCtcw20SI+4EGYZfqvIg==}
+    engines: {node: '>=14.0.0'}
+    dev: false
 
   /acorn-jsx@5.3.2(acorn@8.8.2):
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
