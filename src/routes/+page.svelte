@@ -28,17 +28,16 @@
 		}
 	});
 
-	let text: string = decodedData[0] || `${new Date().getMonth() + 1}`;
-	let color: string = decodedData[1] || '#ff7300';
-	let pickerRef: HTMLButtonElement;
-	let imageDom: HTMLElement;
+	// let text: string = decodedData[0] || `${new Date().getMonth() + 1}`;
+	// let color: string = decodedData[1] || '#ff7300';
+	// let pickerRef: HTMLButtonElement;
 
 	const glassesImage = new Image();
 	glassesImage.src = '/images/vision.png';
 
-	$: ogImageUrl = `https://sunny-pass.vercel.app/i?t=${text}&c=${color.replace('#', '')}`;
-	$: encodedData = `${base64.urlEncode(text)},${base64.urlEncode(color)}`;
-	$: shareUrl = `https://sunny-pass.vercel.app?d=${encodedData}`;
+	$: ogImageUrl = `https://try-vision-pro.vercel.app`;
+	// $: encodedData = `${base64.urlEncode(text)},${base64.urlEncode(color)}`;
+	$: shareUrl = `https://try-vision-pro.vercel.app`;
 
 	onMount(async () => {
 		await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
@@ -205,7 +204,7 @@
 
 	function copyImage() {
 		htmlToImage
-			.toPng(imageDom)
+			.toPng(canvas)
 			.then(function (dataUrl) {
 				const img = new Image();
 				img.src = dataUrl;
@@ -220,9 +219,9 @@
 
 	function saveImage() {
 		htmlToImage
-			.toPng(imageDom)
+			.toPng(canvas)
 			.then(function (blob) {
-				saveAs(blob, `sunny-pass.png`);
+				saveAs(blob, `try-vision-pro.png`);
 				// saving = false
 			})
 			.catch(function (error) {
@@ -231,8 +230,8 @@
 	}
 
 	// OG
-	const title = 'Sunny Pass';
-	const description = 'แคล้วคลาดปลอดภัย';
+	const title = 'Try Vision Pro';
+	const description = '';
 </script>
 
 <svelte:head>
@@ -241,7 +240,7 @@
 	<meta name="title" content={title} />
 	<meta name="description" content={description} />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<meta property="og:url" content={'https://sunny-pass.vercel.app'} />
+	<meta property="og:url" content={'https://try-vision-pro.vercel.app'} />
 	<meta property="og:type" content="website" />
 	<meta property="og:title" content={title} />
 	<meta property="og:description" content={description} />
@@ -259,9 +258,6 @@
 	<canvas bind:this={canvas} />
 
 	<div class="flex gap-4">
-		<button bind:this={pickerRef} class="bg-blue-500 hover: text-white font-bold py-2 px-4 rounded">
-			เปลี่ยนสี
-		</button>
 		<button
 			on:click={() => copyImage()}
 			class="bg-blue-500 hover: text-white font-bold py-2 px-4 rounded"
@@ -276,19 +272,10 @@
 		</button>
 	</div>
 
-	<div class="flex items-center justify-center text-black">
-		<input
-			type="text"
-			bind:value={text}
-			placeholder="เดือน (?)"
-			class="text-center rounded p-2 text-xl"
-		/>
-	</div>
-
 	<div class="flex gap-2 justify-center items-center w-full bottom-4 center">
 		<span class="text-lg"> Share: </span>
-		<Facebook class="h-10 w-10 rounded" url={shareUrl} text="สร้างสติ๊กเกอร์ของคุณได้ที่นี่" />
-		<Twitter class="h-10 w-10 rounded" url={shareUrl} text="สร้างสติ๊กเกอร์ของคุณได้ที่นี่" />
+		<Facebook class="h-10 w-10 rounded" url={shareUrl} text="" />
+		<Twitter class="h-10 w-10 rounded" url={shareUrl} text="" />
 	</div>
 
 	<!-- <Canvas bind:color bind:text bind:imageDom /> -->
