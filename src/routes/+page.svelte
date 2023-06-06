@@ -15,6 +15,7 @@
 
 	let video: HTMLVideoElement;
 	let canvas: HTMLCanvasElement;
+	let displaySize: { width: number; height: number };
 	let faceLandmarkOptions: FaceLandmark68TinyNet;
 
 	let data = $page.url.searchParams.get('d') || '';
@@ -73,6 +74,9 @@
 			canvas.height = video.videoHeight;
 			video.play();
 
+			displaySize = { width: video.videoWidth, height: video.videoHeight };
+			faceapi.matchDimensions(canvas, displaySize);
+
 			await detectVideo(video, canvas);
 			// detectVideo(video, canvas);
 			// resolve(true);
@@ -80,13 +84,25 @@
 	});
 
 	async function detectVideo(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
+		await drawVideo(video, canvas);
+
 		const t0 = performance.now();
 
-		const result = await faceapi.detectSingleFace(video).withFaceLandmarks(true);
+		// canvas.width = video.videoWidth;
+		// canvas.height = video.videoHeight;
+		// displaySize = { width: video.videoWidth, height: video.videoHeight };
+		// faceapi.matchDimensions(canvas, displaySize);
 
-		console.log({ result });
+		const result = await faceapi.detectAllFaces(video).withFaceLandmarks(true);
 
 		if (result) {
+			const resizedResults = faceapi.resizeResults(result, displaySize);
+			console.log({ result, resizedResults });
+			// draw detections into the canvas
+			// faceapi.draw.drawDetections(canvas, resizedResults);
+			// draw the landmarks into the canvas
+			// faceapi.draw.drawFaceLandmarks(canvas, resizedResults);
+			drawFace(canvas, resizedResults);
 		}
 
 		requestAnimationFrame(() => detectVideo(video, canvas));
@@ -106,6 +122,78 @@
 
 		// 	return false;
 		// });
+	}
+
+	function drawVideo(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
+
+		ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+	}
+
+	function drawFace(
+		canvas: HTMLCanvasElement,
+		data: faceapi.WithFaceLandmarks<
+			{
+				detection: faceapi.FaceDetection;
+			},
+			faceapi.FaceLandmarks68
+		>[]
+	) {
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
+
+		for (const person of data) {
+			// draw box around each face
+			ctx.lineWidth = 3;
+			ctx.strokeStyle = 'deepskyblue';
+			ctx.fillStyle = 'deepskyblue';
+			ctx.globalAlpha = 0.6;
+			ctx.beginPath();
+			ctx.rect(
+				person.detection.box.x,
+				person.detection.box.y,
+				person.detection.box.width,
+				person.detection.box.height
+			);
+			ctx.stroke();
+			ctx.globalAlpha = 1;
+			// draw text labels
+			// const expression = Object.entries(person.expressions).sort((a, b) => b[1] - a[1]);
+			ctx.fillStyle = 'black';
+			// ctx.fillText(`gender: ${Math.round(100 * person.genderProbability)}% ${person.gender}`, person.detection.box.x, person.detection.box.y - 59);
+			// ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 41);
+			// ctx.fillText(`age: ${Math.round(person.age)} years`, person.detection.box.x, person.detection.box.y - 23);
+			ctx.fillText(
+				`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
+				person.detection.box.x,
+				person.detection.box.y - 5
+			);
+			ctx.fillStyle = 'lightblue';
+			// ctx.fillText(`gender: ${Math.round(100 * person.genderProbability)}% ${person.gender}`, person.detection.box.x, person.detection.box.y - 60);
+			// ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 42);
+			// ctx.fillText(`age: ${Math.round(person.age)} years`, person.detection.box.x, person.detection.box.y - 24);
+			ctx.fillText(
+				`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
+				person.detection.box.x,
+				person.detection.box.y - 6
+			);
+			// draw face points for each face
+			ctx.globalAlpha = 0.8;
+			ctx.fillStyle = 'lightblue';
+			const pointSize = 2;
+			for (let i = 0; i < person.landmarks.positions.length; i++) {
+				ctx.beginPath();
+				ctx.arc(
+					person.landmarks.positions[i].x,
+					person.landmarks.positions[i].y,
+					pointSize,
+					0,
+					2 * Math.PI
+				);
+				ctx.fill();
+			}
+		}
 	}
 
 	function copyImage() {
@@ -160,14 +248,8 @@
 	<h1 class="text-6xl">Try Vision Pro</h1>
 
 	<!-- svelte-ignore a11y-media-has-caption -->
-	<video bind:this={video} id="video" playsinline class="video" />
-	<canvas
-		bind:this={canvas}
-		id="canvas"
-		class="canvas"
-		style="position: fixed; top: 0; left: 0; z-index: 10"
-	/>
-	<div id="log" style="overflow-y: scroll; height: 16.5rem" />
+	<video bind:this={video} id="video" playsinline class="video" style="display: none;" />
+	<canvas bind:this={canvas} />
 
 	<div class="flex gap-4">
 		<button bind:this={pickerRef} class="bg-blue-500 hover: text-white font-bold py-2 px-4 rounded">
