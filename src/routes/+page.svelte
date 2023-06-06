@@ -278,6 +278,8 @@
 		<Twitter class="h-10 w-10 rounded" url={shareUrl} text="" />
 	</div>
 
+	<div class="text-black">Please don't sue me</div>
+
 	<!-- <Canvas bind:color bind:text bind:imageDom /> -->
 </div>
 
