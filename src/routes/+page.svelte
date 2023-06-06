@@ -8,6 +8,7 @@
 	import { Facebook, Twitter } from 'svelte-share-buttons-component';
 	import * as base64 from 'base64util';
 	import * as faceapi from '@vladmandic/face-api';
+	// import vision from '../../static/images/vision.png';
 
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
@@ -31,6 +32,9 @@
 	let color: string = decodedData[1] || '#ff7300';
 	let pickerRef: HTMLButtonElement;
 	let imageDom: HTMLElement;
+
+	const glassesImage = new Image();
+	glassesImage.src = '/images/vision.png';
 
 	$: ogImageUrl = `https://sunny-pass.vercel.app/i?t=${text}&c=${color.replace('#', '')}`;
 	$: encodedData = `${base64.urlEncode(text)},${base64.urlEncode(color)}`;
@@ -112,47 +116,90 @@
 		if (!ctx) return;
 
 		for (const person of data) {
+			const { detection } = person;
+			const { x, y, width, height } = detection.box;
+			const glassesWidth = glassesImage.width;
+
+			const face = person;
+
+			const { angle } = face;
+			const { roll, pitch, yaw } = angle as {
+				roll: number;
+				pitch: number;
+				yaw: number;
+			};
+			const centerX = x + width / 2;
+			const centerY = y + height / 2;
+
+			// Save the current canvas state
+			ctx.save();
+
+			const left = [person.landmarks.positions[0].x, person.landmarks.positions[0].y];
+			const right = [person.landmarks.positions[16].x, person.landmarks.positions[16].y];
+			const landmarkWidth = Math.sqrt(
+				Math.pow(left[0] - right[0], 2) + Math.pow(left[1] - right[1], 2)
+			);
+			const up = person.landmarks.positions[19].y - person.landmarks.positions[0].y;
+
+			ctx.translate(left[0] - landmarkWidth * 0.1, left[1] + up * 1.6);
+			ctx.rotate(-(roll * Math.PI) / 180);
+
+			const ratio = (landmarkWidth / glassesWidth) * 1.2;
+
+			ctx.drawImage(
+				glassesImage,
+				// -glassesWidth / 2,
+				// -glassesImage.height / 2,
+				// centerX,
+				0,
+				// centerY,
+				0,
+				glassesWidth * ratio,
+				glassesImage.height * ratio
+			);
+			ctx.restore();
+
 			// draw box around each face
-			ctx.lineWidth = 3;
-			ctx.strokeStyle = 'deepskyblue';
-			ctx.fillStyle = 'deepskyblue';
-			ctx.globalAlpha = 0.6;
-			ctx.beginPath();
-			ctx.rect(
-				person.detection.box.x,
-				person.detection.box.y,
-				person.detection.box.width,
-				person.detection.box.height
-			);
-			ctx.stroke();
-			ctx.globalAlpha = 1;
-			ctx.fillStyle = 'black';
-			ctx.fillText(
-				`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
-				person.detection.box.x,
-				person.detection.box.y - 5
-			);
-			ctx.fillStyle = 'lightblue';
-			ctx.fillText(
-				`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
-				person.detection.box.x,
-				person.detection.box.y - 6
-			);
-			// draw face points for each face
-			ctx.globalAlpha = 0.8;
-			ctx.fillStyle = 'lightblue';
-			const pointSize = 2;
-			for (let i = 0; i < person.landmarks.positions.length; i++) {
-				ctx.beginPath();
-				ctx.arc(
-					person.landmarks.positions[i].x,
-					person.landmarks.positions[i].y,
-					pointSize,
-					0,
-					2 * Math.PI
-				);
-				ctx.fill();
-			}
+			// ctx.lineWidth = 3;
+			// ctx.strokeStyle = 'deepskyblue';
+			// ctx.fillStyle = 'deepskyblue';
+			// ctx.globalAlpha = 0.6;
+			// ctx.beginPath();
+			// ctx.rect(
+			// 	person.detection.box.x,
+			// 	person.detection.box.y,
+			// 	person.detection.box.width,
+			// 	person.detection.box.height
+			// );
+			// ctx.stroke();
+			// ctx.globalAlpha = 1;
+			// ctx.fillStyle = 'black';
+			// ctx.fillText(
+			// 	`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
+			// 	person.detection.box.x,
+			// 	person.detection.box.y - 5
+			// );
+			// ctx.fillStyle = 'lightblue';
+			// ctx.fillText(
+			// 	`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
+			// 	person.detection.box.x,
+			// 	person.detection.box.y - 6
+			// );
+			// // draw face points for each face
+			// ctx.globalAlpha = 0.8;
+			// ctx.fillStyle = 'lightblue';
+			// const pointSize = 2;
+			// for (let i = 0; i < person.landmarks.positions.length; i++) {
+			// 	ctx.beginPath();
+			// 	ctx.arc(
+			// 		person.landmarks.positions[i].x,
+			// 		person.landmarks.positions[i].y,
+			// 		pointSize,
+			// 		0,
+			// 		2 * Math.PI
+			// 	);
+			// 	ctx.fill();
+			// }
 		}
 	}
 
@@ -167,7 +214,7 @@
 			})
 			.catch(function (error) {
 				console.error('oops, something went wrong!', error);
-				console.alert(error.message);
+				console.error(error.message);
 			});
 	}
 
