@@ -40,25 +40,21 @@
 		await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
 		await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
 
-		// faceLandmarkOptions = new faceapi.FaceLandmark68TinyNet();
-
 		let stream;
 		const constraints = {
 			audio: false,
 			video: {
 				facingMode: 'user'
-				// width: { ideal: 4096 },
-				// height: { ideal: 2160 },
 			}
 		};
 
 		try {
 			stream = await navigator.mediaDevices.getUserMedia(constraints);
-		} catch (err) {
-			console.error({ err });
-
-			// if (err.name === 'PermissionDeniedError' || err.name === 'NotAllowedError') log(`Camera Error: camera permission denied: ${err.message || err}`);
-			// if (err.name === 'SourceUnavailableError') log(`Camera Error: camera not available: ${err.message || err}`);
+		} catch (err: any) {
+			if (err.name === 'PermissionDeniedError' || err.name === 'NotAllowedError')
+				alert(`Camera Error: camera permission denied: ${err.message || err}`);
+			if (err.name === 'SourceUnavailableError')
+				alert(`Camera Error: camera not available: ${err.message || err}`);
 			return null;
 		}
 
@@ -78,50 +74,22 @@
 			faceapi.matchDimensions(canvas, displaySize);
 
 			await detectVideo(video, canvas);
-			// detectVideo(video, canvas);
-			// resolve(true);
 		};
 	});
 
 	async function detectVideo(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
 		await drawVideo(video, canvas);
 
-		const t0 = performance.now();
+		// const t0 = performance.now();
 
-		// canvas.width = video.videoWidth;
-		// canvas.height = video.videoHeight;
-		// displaySize = { width: video.videoWidth, height: video.videoHeight };
-		// faceapi.matchDimensions(canvas, displaySize);
+		const faces = await faceapi.detectAllFaces(video).withFaceLandmarks(true);
 
-		const result = await faceapi.detectAllFaces(video).withFaceLandmarks(true);
-
-		if (result) {
-			const resizedResults = faceapi.resizeResults(result, displaySize);
-			console.log({ result, resizedResults });
-			// draw detections into the canvas
-			// faceapi.draw.drawDetections(canvas, resizedResults);
-			// draw the landmarks into the canvas
-			// faceapi.draw.drawFaceLandmarks(canvas, resizedResults);
+		if (faces.length) {
+			const resizedResults = faceapi.resizeResults(faces, displaySize);
 			drawFace(canvas, resizedResults);
 		}
 
 		requestAnimationFrame(() => detectVideo(video, canvas));
-		// .withFaceExpressions()
-		// .withFaceDescriptors()
-		// .withAgeAndGender()
-		// .then((result: any) => {
-		// 	const fps = 1000 / (performance.now() - t0);
-		// 	// drawFaces(canvas, result, fps.toLocaleString());
-		// 	console.log({ result });
-
-		// 	requestAnimationFrame(() => detectVideo(video, canvas));
-		// 	return true;
-		// })
-		// .catch((err) => {
-		// 	console.error({ err });
-
-		// 	return false;
-		// });
 	}
 
 	function drawVideo(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
@@ -158,21 +126,13 @@
 			);
 			ctx.stroke();
 			ctx.globalAlpha = 1;
-			// draw text labels
-			// const expression = Object.entries(person.expressions).sort((a, b) => b[1] - a[1]);
 			ctx.fillStyle = 'black';
-			// ctx.fillText(`gender: ${Math.round(100 * person.genderProbability)}% ${person.gender}`, person.detection.box.x, person.detection.box.y - 59);
-			// ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 41);
-			// ctx.fillText(`age: ${Math.round(person.age)} years`, person.detection.box.x, person.detection.box.y - 23);
 			ctx.fillText(
 				`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
 				person.detection.box.x,
 				person.detection.box.y - 5
 			);
 			ctx.fillStyle = 'lightblue';
-			// ctx.fillText(`gender: ${Math.round(100 * person.genderProbability)}% ${person.gender}`, person.detection.box.x, person.detection.box.y - 60);
-			// ctx.fillText(`expression: ${Math.round(100 * expression[0][1])}% ${expression[0][0]}`, person.detection.box.x, person.detection.box.y - 42);
-			// ctx.fillText(`age: ${Math.round(person.age)} years`, person.detection.box.x, person.detection.box.y - 24);
 			ctx.fillText(
 				`roll:${person.angle.roll}° pitch:${person.angle.pitch}° yaw:${person.angle.yaw}°`,
 				person.detection.box.x,
@@ -207,7 +167,7 @@
 			})
 			.catch(function (error) {
 				console.error('oops, something went wrong!', error);
-				console.log(error.message);
+				console.alert(error.message);
 			});
 	}
 
