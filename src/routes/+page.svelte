@@ -18,6 +18,7 @@
 	let canvas: HTMLCanvasElement;
 	let displaySize: { width: number; height: number };
 	let faceLandmarkOptions: FaceLandmark68TinyNet;
+	let chooseImageInput: HTMLInputElement;
 
 	let data = $page.url.searchParams.get('d') || '';
 	let decodedData = data.split(',').map((d) => {
@@ -229,6 +230,25 @@
 			});
 	}
 
+	function handleChooseImage() {
+		if (!chooseImageInput.files) return;
+		let image = chooseImageInput.files[0];
+		const objectURL: string = URL.createObjectURL(image);
+
+		// convert image to media stream
+		const imageElement: HTMLImageElement = new Image();
+		imageElement.src = objectURL;
+		imageElement.onload = () => {
+			const canvas: HTMLCanvasElement = document.createElement('canvas');
+			const context: CanvasRenderingContext2D = canvas.getContext('2d') as CanvasRenderingContext2D;
+			canvas.width = imageElement.naturalWidth;
+			canvas.height = imageElement.naturalHeight;
+			context.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+
+			video.srcObject = canvas.captureStream(0);
+		};
+	}
+
 	// OG
 	const title = 'Try Vision Pro';
 	const description = '';
@@ -258,6 +278,19 @@
 	<canvas bind:this={canvas} />
 
 	<div class="flex gap-4">
+		<button
+			on:click={() => chooseImageInput.click()}
+			class="bg-blue-500 hover: text-white font-bold py-2 px-4 rounded"
+		>
+			เลือกรูป
+		</button>
+		<input
+			type="file"
+			accept=".jpg, .jpeg, .png"
+			class="hidden"
+			bind:this={chooseImageInput}
+			on:change={handleChooseImage}
+		/>
 		<button
 			on:click={() => copyImage()}
 			class="bg-blue-500 hover: text-white font-bold py-2 px-4 rounded"
